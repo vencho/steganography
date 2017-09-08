@@ -1,0 +1,232 @@
+if 
+	[ "$#" -ne "6" ] 
+then
+	echo "Wrong number of arguments."
+	echo "Usage: experiment directory payloadPercentage algorithm queries distance target"
+	echo "Algorithm can be greedy, rand, varsort, genetic or qp."
+	echo "Distance is a distance file."
+	echo "Target is either original or mean."
+	exit
+fi
+
+directory=$1
+payloadPercentage=$2
+algorithm=$3
+queries=$4
+distanceFile=$5
+target=$6
+
+
+
+coversDir=$directory
+coversTrainingDir=$coversDir/Training
+coversTestingDir=$coversDir/Testing
+
+if
+	[ ! -d $coversDir ]
+then
+	echo "Directory hasn't been halved yet. Halving."
+	mkdir $coversDir
+	mkdir $coversTrainingDir
+	mkdir $coversTestingDir
+
+	fl=0;
+	for file in $directory/*
+	do
+		f=${file##*/};
+		if [ -d $directory/$f ]; then continue; fi
+		if [ $f = "allwams" ]; then continue; fi
+		if [ $(echo $f | grep dist | wc -l) != "0" ]; then continue; fi
+
+
+
+		if [ $fl -eq "0" ]
+		then 
+			mv $file $coversTrainingDir/$f
+			fl="1"
+		else 
+			mv $file $coversTestingDir/$f
+			fl="0"
+		fi;
+	done
+else
+	echo "Directory is already halved. Using the given split."
+fi
+
+
+
+for file in $coversDir/Training/*
+do
+	f=${file##*/};
+	if [ $f = "allwams" ]; then continue; fi;
+
+	grep -Eo [0-9]+ -m 3 <$file  >temp 
+	v=0
+	while read line
+	do
+		boo[$v]=$line
+		((v++))
+	done <temp
+	imageSize=$((${boo[1]}*${boo[2]}))
+	break
+done;
+rm temp;
+echo "Detected image size to be $imageSize pixels."
+payloadSize=$(($imageSize*$payloadPercentage/800))
+echo "Then the payload size is $payloadSize."
+
+
+
+
+stegoDir=$directory/Stego.$payloadPercentage/
+stegoTrainingDir=$stegoDir/Training
+stegoTestingDir=$stegoDir/Testing
+logsDir=$stegoDir/Logs
+logsTrainingDir=$logsDir/Training
+logsTestingDir=$logsDir/Testing
+
+
+if 
+	[ ! -d $stegoDir ]
+then
+	echo "No stego set for that size found. Creating it."
+	mkdir $stegoDir
+	mkdir $stegoTrainingDir
+	mkdir $stegoTestingDir
+	mkdir $logsDir
+	mkdir $logsTrainingDir
+	mkdir $logsTestingDir
+
+
+	text=$stegoDir/randomtext$payloadSize
+	./bin/doGenerateRandomText $payloadSize $text
+
+
+	for file in $coversTrainingDir/*
+	do
+		f=${file##*/};
+		./bin/doEncode $file $stegoTrainingDir/$f.stego $logsTrainingDir/$f.log $RANDOM $text
+	done
+
+
+	for file in $coversTestingDir/*
+	do
+		f=${file##*/};
+		./bin/doEncode $file $stegoTestingDir/$f.stego $logsTestingDir/$f.log $RANDOM $text
+	done
+
+else
+	echo "Stego set for that payload found. Will use it."
+fi
+
+
+
+
+f=${distanceFile##*/};
+if
+	[ $(echo $f | grep mah | wc -l) != "0" ]
+then
+	distType="mah"
+else if
+	[ $(echo $f | grep euc | wc -l) != "0" ]
+then
+	distType="euc"
+else if
+	[ $(echo $f | grep diag |  wc -l) != "0" ]
+then
+	distType="diag"
+fi; fi; fi
+
+
+
+expDir=$stegoDir/$algorithm.$distType.$target
+
+
+# if 
+#	[ -d $expDir/Restored$queries ]
+# then
+#	echo "We've already done this experiment."
+# else
+	mkdir $expDir
+	mkdir $expDir/RestorationLogs
+	mkdir $expDir/RestorationLogs/Training
+	mkdir $expDir/RestorationLogs/Testing
+
+	for ((q=1000; q<=$queries; q=q+1000))
+	do
+		mkdir $expDir/Restored$q
+		mkdir $expDir/Restored$q/Training
+		mkdir $expDir/Restored$q/Testing
+	done;
+
+
+
+
+	if [ $algorithm = "rand" ];
+	then args="1 25"
+	elif [ $algorithm = "genetic" ];
+	then args="10";
+	else args="";
+	fi
+
+
+
+
+
+	for w in Training Testing
+	do
+
+		rlogsDir=$expDir/RestorationLogs
+
+
+		for file in $coversDir/$w/*
+		do
+
+			f=${file##*/};
+
+			if [ -d $file ]; then continue; fi
+			if [ $f = "allwams" ]; then continue; fi
+			echo "Starting to restore $f.";
+			if [ -f $rlogsDir/$w/$f.rlog ]; then echo "This has been done before. Skipping."; continue; fi;
+
+			./bin/doRestore $algorithm $coversDir/$w/$f $stegoDir/$w/$f.stego $logsDir/$w/$f.log $args $queries 1000 $distanceFile $target >$rlogsDir/$w/$f.rlog; 
+			if [ $algorithm = "qp" ]; then rm A.dat; rm b.dat; rm matlabOutput; fi
+			mv restored.pgm restored$queries.pgm
+			for ((q=1000; q<=$queries; q=q+1000))
+			do mv ./restored$q.pgm $expDir/Restored$q/$w/$f.restored.$q; done
+		done;
+done;
+
+# fi
+
+
+
+
+
+exit
+
+
+if [ ! -f $coversTrainingDir/allwams ]; then ./scripts/calculateAllWams $coversTrainingDir; fi
+if [ ! -f $coversTestingDir/allwams ]; then ./scripts/calculateAllWams $coversTestingDir; fi
+
+echo "Classifying stego images with no restoration:";
+if [ ! -f $stegoTrainingDir/allwams ]; then ./scripts/calculateAllWams $stegoTrainingDir; fi
+if [ ! -f $stegoTestingDir/allwams ]; then ./scripts/calculateAllWams $stegoTestingDir; fi
+./bin/doFLD $coversTrainingDir/allwams $stegoTrainingDir/allwams $coversTestingDir/allwams $stegoTestingDir/allwams
+
+
+
+
+for ((q=1000; ;q=q+1000))
+	do
+		if [ -d $expDir/Restored$q ]
+		then
+			echo "Classifying after $q queries:";
+			if [ ! -f $expDir/Restored$q/Training/allwams ]; then ./scripts/calculateAllWams $expDir/Restored$q/Training; fi
+			if [ ! -f $expDir/Restored$q/Testing/allwams ]; then ./scripts/calculateAllWams $expDir/Restored$q/Testing; fi
+			./bin/doFLD $coversTrainingDir/allwams $expDir/Restored$q/Training/allwams $coversTestingDir/allwams $expDir/Restored$q/Testing/allwams
+		else
+			break;
+		fi
+	done
+

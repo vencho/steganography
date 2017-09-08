@@ -1,0 +1,73 @@
+if 
+	[ "$#" -ne "5" ]
+then
+	echo "Wrong number of arguments."
+	echo "Usage: massRestore directory algorithm queries distance target"
+	exit
+fi
+
+directory=$1
+algorithm=$2
+queries=$3
+distanceFile=$4
+target=$5
+
+
+mkdir $directory/Training/RestorationLogs
+mkdir $directory/Testing/RestorationLogs
+mkdir $directory/Training/Restored
+mkdir $directory/Testing/Restored
+
+for ((q=1000; q<=$queries; q=q+1000))
+do
+	mkdir $1/Training/Restored/Restored$q
+	mkdir $1/Testing/Restored/Restored$q
+done;
+
+
+
+if [ $algorithm = "rand" ];
+then args="1 25"
+elif [ $algorithm = "genetic" ];
+then args="10";
+else args="";
+fi
+
+
+
+
+for w in Training Testing
+do
+
+	coversDir=$directory/$w/Covers
+	stegoDir=$directory/$w/Stego
+	logsDir=$directory/$w/Logs
+	rlogsDir=$directory/$w/RestorationLogs
+	restoredDir=$directory/$w/Restored
+
+
+	for file in $coversDir/*
+	do
+		f=${file##*/};
+
+		if [ -d $file ]; then echo "directory"; continue; fi
+
+		if [ $f = "allwams" ]; then echo "allwams"; continue; fi
+
+		echo "Starting to restore $f.";
+
+		./bin/doRestore $algorithm $coversDir/$f $stegoDir/$f.stego $logsDir/$f.log $args $queries 1000 $distanceFile $target >$rlogsDir/$f.rlog; 
+
+		if [ $algorithm = "qp" ]; then rm A.dat; rm b.dat; rm matlabOutput; fi
+
+		mv restored.pgm restored$queries.pgm
+
+		for ((q=1000; q<=$queries; q=q+1000))
+
+		do mv ./restored$q.pgm $restoredDir/Restored$q/$f.restored.$q; done
+
+	done;
+
+
+done;
+

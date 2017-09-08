@@ -1,0 +1,22 @@
+if [ "$#" -ne "3" ];
+then
+	echo "Wrong number of arguments."
+	echo "Usage: createDistance directory type outputFile"
+	echo "Type can be euc, mah or diag."
+	exit
+fi
+
+
+
+if [ ! -f $1/Training/allwams ];
+then 
+	./scripts/calculateAllWams $1/Training;
+fi
+if [ ! -f $1/Testing/allwams ];
+then 
+	./scripts/calculateAllWams $1/Testing;
+fi
+
+cat $1/Training/allwams $1/Testing/allwams > $1/allwams
+
+./bin/doCreateDistance $2 $1/allwams $3

@@ -1,0 +1,46 @@
+if 
+	[ "$#" -ne "1" ] 
+then
+	echo "Wrong number of arguments."
+	echo "Usage: classify experimentDirectory"
+	echo "Example: ./classify ../setC/Stego.75/rand.mah.orig"
+	exit
+fi
+
+coversDir=$1/../../
+stegoDir=$1/..
+expDir=$1
+
+
+coversTrainingDir=$coversDir/Training
+coversTestingDir=$coversDir/Testing
+
+stegoTrainingDir=$stegoDir/Training
+stegoTestingDir=$stegoDir/Testing
+
+
+
+if [ ! -f $coversTrainingDir/allwams ]; then ./scripts/calculateAllWams $coversTrainingDir; fi
+if [ ! -f $coversTestingDir/allwams ]; then ./scripts/calculateAllWams $coversTestingDir; fi
+
+echo -n "0 ";
+if [ ! -f $stegoTrainingDir/allwams ]; then ./scripts/calculateAllWams $stegoTrainingDir; fi
+if [ ! -f $stegoTestingDir/allwams ]; then ./scripts/calculateAllWams $stegoTestingDir; fi
+
+./bin/doFLD $coversTrainingDir/allwams $stegoTrainingDir/allwams $coversTestingDir/allwams $stegoTestingDir/allwams
+
+
+
+for ((q=1000; ;q=q+1000))
+	do
+		if [ -d $expDir/Restored$q ]
+		then
+			echo -n "$q "
+			if [ ! -f $expDir/Restored$q/Training/allwams ]; then ./scripts/calculateAllWams $expDir/Restored$q/Training; fi
+			if [ ! -f $expDir/Restored$q/Testing/allwams ]; then ./scripts/calculateAllWams $expDir/Restored$q/Testing; fi
+			./bin/doFLD $coversTrainingDir/allwams $expDir/Restored$q/Training/allwams $coversTestingDir/allwams $expDir/Restored$q/Testing/allwams
+		else
+			break;
+		fi
+	done
+

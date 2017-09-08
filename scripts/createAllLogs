@@ -1,0 +1,19 @@
+if 
+	[ "$#" -ne "1" ] 
+then
+	echo "Wrong number of arguments."
+	echo "Usage: parseRlogs experimentDirectory"
+	echo "Example: ./createAllLogs ../setC/Stego.75/rand.mah.orig"
+	exit
+fi
+
+dir=$1;
+
+for w in Training Testing
+do
+	for i in $dir/RestorationLogs/$w/*
+	do
+		./bin/doParseRestorationLog $i 25000
+	done
+done >$dir/RestorationLogs/allLogs
+

@@ -1,0 +1,18 @@
+if [ "$#" -ne "1" ];
+then
+	echo "Wrong number of arguments."
+	echo "Usage: calculateAllWams directory"
+	exit
+fi
+
+
+
+if [ -f $1/allwams ]; then rm $1/allwams; fi
+
+
+for file in $1/*
+do
+	f=${file##*/};
+	if [ $f != "allwams" ]; then ./bin/doWAM $file; fi
+done >$1/allwams
+

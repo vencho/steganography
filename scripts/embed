@@ -1,0 +1,51 @@
+
+if 
+	[ "$#" -ne "2" ] 
+then
+	echo "Wrong number of arguments."
+	echo "Usage: embed directory payloadSize"
+	echo "Note that payloadSize is in bytes. I shall check that it's an integer and not a word, but it's up to you to make sure it's a reasonably-sized one."
+	exit
+fi
+
+
+
+if
+	[ ! -d $1 ]
+then
+	echo "Error, argument 1 does not exist or is not a directory."
+	exit
+fi
+
+
+
+if 
+	[ ! $(echo "$2" | grep -E "^[0-9]+$") ]
+then
+	echo Error, argument 2 is not a valid integer.
+	exit
+fi
+
+
+mkdir $1/Training/Stego
+mkdir $1/Testing/Stego
+mkdir $1/Training/Logs
+mkdir $1/Testing/Logs
+
+
+./bin/doGenerateRandomText $2 $1/randomtext$2
+
+for file in $1/Training/Covers/*
+do
+	f=${file##*/};
+	./bin/doEncode $file $1/Training/Stego/$f.stego $1/Training/Logs/$f.log $RANDOM $1/randomtext$2
+done
+
+
+for file in $1/Testing/Covers/*
+do
+	f=${file##*/};
+	./bin/doEncode $file $1/Testing/Stego/$f.stego $1/Testing/Logs/$f.log $RANDOM $1/randomtext$2
+done
+
+

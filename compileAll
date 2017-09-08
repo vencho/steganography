@@ -1,0 +1,14 @@
+mkdir ./bin
+
+g++ -O2 ./src/doPrograms/doGenerateRandomText.cpp -o ./bin/doGenerateRandomText -w
+g++ -O2 ./src/doPrograms/doEncode.cpp -o ./bin/doEncode -w
+g++ -O2 ./src/doPrograms/doDecode.cpp -o ./bin/doDecode -w
+g++ -O2 ./src/doPrograms/doWAM.cpp -o ./bin/doWAM -w
+g++ -O2 ./src/doPrograms/doRestore.cpp -o ./bin/doRestore -w
+g++ -O2 ./src/doPrograms/doFLD.cpp -o ./bin/doFLD -w
+g++ -O2 ./src/doPrograms/doCreateDistance.cpp -o ./bin/doCreateDistance -w
+g++ -O2 ./src/doPrograms/doDistance.cpp -o ./bin/doDistance -w
+g++ -O2 ./src/doPrograms/doCovariance.cpp -o ./bin/doCovariance -w
+g++ -O2 ./src/doPrograms/doInvert.cpp -o ./bin/doInvert -w
+g++ -O2 ./src/doPrograms/doParseRestorationLog.cpp -o ./bin/doParseRestorationLog -w
+
